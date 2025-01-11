@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         sis小说下载
-// @namespace    https://viayoo.com/
+// @namespace    https://github.com/whx9986/MyScripts
 // @version      2.2
 // @description  爬取SIS 1楼内容并生成TXT文件
 // @author       ChatGPT
@@ -8,6 +8,8 @@
 // @match        http*://*.sis001.com/*/viewthread*
 // @grant        GM_addStyle
 // @run-at       document-end
+// @updateURL    https://raw.githubusercontent.com/whx9986/MyScripts/main/sis001-novel-download.user.js
+// @downloadURL  https://raw.githubusercontent.com/whx9986/MyScripts/main/sis001-novel-download.user.js
 // ==/UserScript==
 
 (function () {

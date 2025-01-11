@@ -1,5 +1,5 @@
 # SIS-Novel-Download
-一个用于下载SIS小说的手机版用户脚本。
+一个用于下载SIS小说的用户脚本，电脑和手机端均可使用。
 
 ## 安装脚本
 [点击此处安装](https://whx9986.github.io/MyScripts/sis-novel-download.user.js)

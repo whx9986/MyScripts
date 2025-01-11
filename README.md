@@ -1,4 +1,4 @@
-# SIS Novel Downloader
+# SIS Novel Download
 一个用于下载 SIS 帖子一楼内容的用户脚本。
 
 ## 安装脚本

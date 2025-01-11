@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         sis小说下载（手机版）
+// @name         sis小说下载
 // @namespace    https://github.com/whx9986/MyScripts
-// @version      3.0
-// @description  爬取SIS 1楼内容并生成TXT文件，按钮支持拖动功能。
+// @version      3.3
+// @description  爬取SIS 1楼文字并生成TXT文件，支持手机和电脑端适配。
 // @author       ChatGPT
 // @match        http*://*.sis001.com/*/thread-*
 // @match        http*://*.sis001.com/*/viewthread*
@@ -31,7 +31,7 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        font-size: 12px; /* 字体调整为12 */
+        font-size: 12px; /* 字体大小 */
         text-align: center;
         cursor: pointer;
         transition: all 0.3s ease;
@@ -52,55 +52,9 @@
     `;
     document.body.appendChild(container);
 
-    // 状态变量
-    let isDragging = false;
-    let startX = 0;
-    let startY = 0;
-    let moved = false; // 是否发生拖动
-
-    // 触摸开始
-    container.addEventListener('touchstart', (e) => {
-        isDragging = true;
-        moved = false; // 初始化拖动状态
-        startX = e.touches[0].clientX - container.offsetLeft;
-        startY = e.touches[0].clientY - container.offsetTop;
-        container.style.transition = 'none'; // 停止平滑动画
-    });
-
-    // 触摸移动
-    document.addEventListener('touchmove', (e) => {
-        if (isDragging) {
-            e.preventDefault(); // 阻止页面滑动
-            const touch = e.touches[0];
-            let left = touch.clientX - startX;
-            let top = touch.clientY - startY;
-
-            // 防止超出屏幕边界
-            const maxLeft = window.innerWidth - container.offsetWidth;
-            const maxTop = window.innerHeight - container.offsetHeight;
-            left = Math.max(0, Math.min(left, maxLeft));
-            top = Math.max(0, Math.min(top, maxTop));
-
-            container.style.left = `${left}px`;
-            container.style.top = `${top}px`;
-            container.style.right = 'auto'; // 清除右侧固定距离
-            container.style.bottom = 'auto'; // 清除底部固定距离
-
-            moved = true; // 标记发生了拖动
-        }
-    });
-
-    // 触摸结束
-    document.addEventListener('touchend', (e) => {
-        if (isDragging) {
-            isDragging = false;
-            container.style.transition = 'all 0.3s ease'; // 恢复平滑动画
-
-            // 如果未发生拖动，认为是点击操作
-            if (!moved) {
-                fetchFirstPost();
-            }
-        }
+    // 点击按钮事件
+    container.addEventListener('click', function () {
+        fetchFirstPost();
     });
 
     // 爬取1楼内容
@@ -108,8 +62,12 @@
         try {
             console.log("开始爬取1楼内容");
 
-            // 获取第一个 id 以 "postmessage_" 开头的元素
-            const postContentElement = document.querySelector('th[id^="postmessage_"]');
+            // 适配手机端和电脑版的内容提取
+            let postContentElement = document.querySelector('th[id^="postmessage_"]'); // 手机端
+            if (!postContentElement) {
+                postContentElement = document.querySelector('.postmessage.defaultpost .t_msgfont'); // 电脑版
+            }
+
             if (!postContentElement) {
                 alert('未找到1楼内容，可能需要登录或权限不足！');
                 return;

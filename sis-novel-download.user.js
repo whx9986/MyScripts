@@ -1,49 +1,106 @@
 // ==UserScript==
-// @name         sis小说下载
+// @name         sis小说下载（手机版）
 // @namespace    https://github.com/whx9986/MyScripts
-// @version      2.2
-// @description  爬取SIS 1楼内容并生成TXT文件
+// @version      3.0
+// @description  爬取SIS 1楼内容并生成TXT文件，按钮支持拖动功能。
 // @author       ChatGPT
 // @match        http*://*.sis001.com/*/thread-*
 // @match        http*://*.sis001.com/*/viewthread*
 // @grant        GM_addStyle
 // @run-at       document-end
-// @updateURL    https://raw.githubusercontent.com/whx9986/MyScripts/main/sis001-novel-download.user.js
-// @downloadURL  https://raw.githubusercontent.com/whx9986/MyScripts/main/sis001-novel-download.user.js
+// @updateURL    https://raw.githubusercontent.com/whx9986/MyScripts/main/sis-novel-download.user.js
+// @downloadURL  https://raw.githubusercontent.com/whx9986/MyScripts/main/sis-novel-download.user.js
 // ==/UserScript==
 
 (function () {
     'use strict';
 
-    // 添加悬浮样式
+    // 添加样式
     GM_addStyle(`
-      .download-btn {
+      .download-container {
         position: fixed;
-        bottom: 200px;
+        bottom: 150px;
         right: 20px;
         z-index: 9999;
         background-color: #007bff;
         color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 5px;
-        font-size: 16px;
+        width: 50px;
+        height: 50px;
+        border-radius: 12px; /* 圆角 */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px; /* 字体调整为12 */
+        text-align: center;
         cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 8px rgba(0, 123, 255, 0.7);
+        user-select: none; /* 禁止选中文字 */
       }
-      .download-btn:hover {
-        background-color: #0056b3;
+      .download-container:active {
+        box-shadow: 0 0 12px 4px rgba(255, 255, 0, 0.8); /* 点击时光圈效果 */
       }
     `);
 
-    // 创建悬浮按钮
-    const downloadButton = document.createElement('button');
-    downloadButton.className = 'download-btn';
-    downloadButton.innerText = '下载TXT'; // 修改按钮文本
-    document.body.appendChild(downloadButton);
+    // 创建悬浮窗
+    const container = document.createElement('div');
+    container.className = 'download-container';
+    container.innerHTML = `
+      <span>下载</span>
+      <span>TXT</span>
+    `;
+    document.body.appendChild(container);
 
-    // 按钮点击事件
-    downloadButton.addEventListener('click', function () {
-        fetchFirstPost();
+    // 状态变量
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let moved = false; // 是否发生拖动
+
+    // 触摸开始
+    container.addEventListener('touchstart', (e) => {
+        isDragging = true;
+        moved = false; // 初始化拖动状态
+        startX = e.touches[0].clientX - container.offsetLeft;
+        startY = e.touches[0].clientY - container.offsetTop;
+        container.style.transition = 'none'; // 停止平滑动画
+    });
+
+    // 触摸移动
+    document.addEventListener('touchmove', (e) => {
+        if (isDragging) {
+            e.preventDefault(); // 阻止页面滑动
+            const touch = e.touches[0];
+            let left = touch.clientX - startX;
+            let top = touch.clientY - startY;
+
+            // 防止超出屏幕边界
+            const maxLeft = window.innerWidth - container.offsetWidth;
+            const maxTop = window.innerHeight - container.offsetHeight;
+            left = Math.max(0, Math.min(left, maxLeft));
+            top = Math.max(0, Math.min(top, maxTop));
+
+            container.style.left = `${left}px`;
+            container.style.top = `${top}px`;
+            container.style.right = 'auto'; // 清除右侧固定距离
+            container.style.bottom = 'auto'; // 清除底部固定距离
+
+            moved = true; // 标记发生了拖动
+        }
+    });
+
+    // 触摸结束
+    document.addEventListener('touchend', (e) => {
+        if (isDragging) {
+            isDragging = false;
+            container.style.transition = 'all 0.3s ease'; // 恢复平滑动画
+
+            // 如果未发生拖动，认为是点击操作
+            if (!moved) {
+                fetchFirstPost();
+            }
+        }
     });
 
     // 爬取1楼内容

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         sis小说下载
 // @namespace    https://github.com/whx9986/MyScripts
-// @version      3.3
+// @version      3.4
 // @description  爬取SIS 1楼文字并生成TXT文件，支持手机和电脑端适配。
 // @author       ChatGPT
 // @match        http*://*.sis001.com/*/thread-*
@@ -26,20 +26,20 @@
         color: white;
         width: 50px;
         height: 50px;
-        border-radius: 12px; /* 圆角 */
+        border-radius: 12px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        font-size: 12px; /* 字体大小 */
+        font-size: 12px;
         text-align: center;
         cursor: pointer;
-        transition: all 0.3s ease;
+        transition: transform 0.1s;
         box-shadow: 0 0 8px rgba(0, 123, 255, 0.7);
-        user-select: none; /* 禁止选中文字 */
+        user-select: none;
       }
       .download-container:active {
-        box-shadow: 0 0 12px 4px rgba(255, 255, 0, 0.8); /* 点击时光圈效果 */
+        box-shadow: 0 0 12px 4px rgba(255, 255, 0, 0.8);
       }
     `);
 
@@ -52,9 +52,121 @@
     `;
     document.body.appendChild(container);
 
-    // 点击按钮事件
-    container.addEventListener('click', function () {
-        fetchFirstPost();
+    let startX = 0, startY = 0;
+    let startLeft = 0, startTop = 0;
+    let isDragging = false;
+
+    // 处理移动端触摸事件
+    container.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        startDrag(touch.clientX, touch.clientY);
+    });
+
+    container.addEventListener('touchmove', function(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        const touch = e.touches[0];
+        moveTo(touch.clientX, touch.clientY);
+    });
+
+    container.addEventListener('touchend', function() {
+        isDragging = false;
+    });
+
+    // 处理PC端鼠标事件
+    container.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        startDrag(e.clientX, e.clientY);
+    });
+
+    document.addEventListener('mousemove', function(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        moveTo(e.clientX, e.clientY);
+    });
+
+    document.addEventListener('mouseup', function() {
+        if (!isDragging) return;
+        isDragging = false;
+    });
+
+    // 开始拖动
+    function startDrag(x, y) {
+        isDragging = true;
+        startX = x;
+        startY = y;
+        const rect = container.getBoundingClientRect();
+        startLeft = rect.left;
+        startTop = rect.top;
+    }
+
+    // 移动到新位置
+    function moveTo(x, y) {
+        const deltaX = x - startX;
+        const deltaY = y - startY;
+
+        let newLeft = startLeft + deltaX;
+        let newTop = startTop + deltaY;
+
+        // 边界检查
+        const maxX = window.innerWidth - container.offsetWidth;
+        const maxY = window.innerHeight - container.offsetHeight;
+
+        newLeft = Math.max(0, Math.min(maxX, newLeft));
+        newTop = Math.max(0, Math.min(maxY, newTop));
+
+        container.style.left = newLeft + 'px';
+        container.style.top = newTop + 'px';
+        container.style.right = 'auto';
+        container.style.bottom = 'auto';
+    }
+
+    // 点击事件处理
+    let moveDistance = 0;
+    container.addEventListener('mousedown', function(e) {
+        moveDistance = 0;
+    });
+
+    container.addEventListener('mousemove', function() {
+        moveDistance += 1;
+    });
+
+    container.addEventListener('mouseup', function() {
+        if (moveDistance < 5) {
+            fetchFirstPost();
+        }
+        moveDistance = 0;
+    });
+
+    // 移动端点击处理
+    let touchStartTime;
+    let touchStartPos;
+
+    container.addEventListener('touchstart', function(e) {
+        touchStartTime = new Date().getTime();
+        touchStartPos = {
+            x: e.touches[0].clientX,
+            y: e.touches[0].clientY
+        };
+    });
+
+    container.addEventListener('touchend', function(e) {
+        const touchEndTime = new Date().getTime();
+        const touchEndPos = {
+            x: e.changedTouches[0].clientX,
+            y: e.changedTouches[0].clientY
+        };
+
+        const moveDistance = Math.sqrt(
+            Math.pow(touchEndPos.x - touchStartPos.x, 2) +
+            Math.pow(touchEndPos.y - touchStartPos.y, 2)
+        );
+
+        // 如果移动距离小于10px且时间小于200ms，认为是点击
+        if (moveDistance < 10 && touchEndTime - touchStartTime < 200) {
+            fetchFirstPost();
+        }
     });
 
     // 爬取1楼内容
@@ -100,13 +212,13 @@
     // 清理无关内容函数
     function cleanContent(title, content) {
         content = content
-            .replace(new RegExp(`^${title}`, 'g'), '')           // 删除标题重复部分
-            .replace(/版主提醒：.*?[\r\n]+/g, '')              // 删除版主提醒
-            .replace(/本帖最近评分记录[\s\S]*$/g, '')          // 删除评分记录及之后内容
+            .replace(new RegExp(`^${title}`, 'g'), '') // 删除标题重复部分
+            .replace(/版主提醒：.*?[\r\n]+/g, '') // 删除版主提醒
+            .replace(/本帖最近评分记录[\s\S]*$/g, '') // 删除评分记录及之后内容
             .replace(/附件:.*您所在的用户组无法下载或查看附件.*(\r?\n)?/g, '') // 删除附件信息
-            .replace(/\[ 本帖最后由 .*? 编辑 \]/g, '')          // 删除编辑信息
-            .replace(/\n{3,}/g, '\n\n')                         // 删除多余空行，保留段落间一个空行
-            .replace(/^\s+|\s+$/g, '');                         // 删除行首行尾空白
+            .replace(/\[ 本帖最后由 .*? 编辑 \]/g, '') // 删除编辑信息
+            .replace(/\n{3,}/g, '\n\n') // 删除多余空行，保留段落间一个空行
+            .replace(/^\s+|\s+$/g, ''); // 删除行首行尾空白
 
         // 解析HTML实体
         content = decodeHTML(content);
